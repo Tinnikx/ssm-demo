@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:p="http://www.springframework.org/schema/p"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd">
+
+    <!-- configure dataSource -->
+    <bean id="dataSource" class="org.springframework.jdbc.datasource.DriverManagerDataSource"
+          p:driverClassName="com.mysql.cj.jdbc.Driver"
+          p:username="root"
+          p:password="xiang521!"
+          p:url="jdbc:mysql://localhost:3306/mytestdb"/>
+
+    <!-- if you want use c3p0 pool, then switch to this dataSource -->
+    <!--<bean id="dataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource"
+          p:driverClass="com.mysql.cj.jdbc.Driver"
+          p:user="root"
+          p:password="xiang521!"
+          p:jdbcUrl="jdbc:mysql://localhost:3306/mytestdb"
+          p:initialPoolSize="50"
+          p:testConnectionOnCheckin="true"/>-->
+
+    <!-- configure hibernet session factory -->
+    <bean id="sessionFactory" class="org.springframework.orm.hibernate5.LocalSessionFactoryBean"
+          p:dataSource-ref="dataSource">
+        <property name="packagesToScan">
+            <list>
+                <value>com.taokaixiang.ssm.demo.v1.dao</value>
+            </list>
+        </property>
+    </bean>
+
+    <!-- configure transactionManager -->
+    <bean id="manager" class="org.springframework.orm.hibernate5.HibernateTransactionManager"
+          p:sessionFactory-ref="sessionFactory"
+          p:rollbackOnCommitFailure="true"/>
+    <tx:annotation-driven transaction-manager="manager"/>
+</beans>

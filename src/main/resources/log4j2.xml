@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="on" monitorInterval="1800">
+    <Appenders>
+        <Console name="Console" target="SYSTEM_OUT">
+            <PatternLayout pattern="[%d{HH:mm:ss:SSS}] [%p] - %l - %m%n"/>
+        </Console>
+        <RollingFile name="RollingFileInfo" fileName="/home/kaixiang/log/info.log"
+                     filePattern="/home/kaixiang/log/$${date:yyyy-MM}/info-%d{yyyy-MM-dd}-%i.log">
+            <!--控制台只输出level及以上级别的信息（onMatch），其他的直接拒绝（onMismatch）-->
+            <ThresholdFilter level="info" onMatch="ACCEPT" onMismatch="DENY"/>
+            <PatternLayout pattern="[%d{HH:mm:ss:SSS}] [%p] - %l - %m%n"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy/>
+                <SizeBasedTriggeringPolicy size="10MB"/>
+            </Policies>
+        </RollingFile>
+    </Appenders>
+    <Loggers>
+        <root level="info" includeLocation="true">
+            <appender-ref ref="Console"/>
+            <appender-ref ref="RollingFileInfo"/>
+        </root>
+    </Loggers>
+</Configuration>

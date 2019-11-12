@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:p="http://www.springframework.org/schema/p"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd http://www.springframework.org/schema/util https://www.springframework.org/schema/util/spring-util.xsd">
+
+    <bean id="testJobDetail" class="org.springframework.scheduling.quartz.JobDetailFactoryBean"
+          p:jobClass="com.taokaixiang.ssm.demo.v1.quartz.job.JobTest"/>
+
+    <bean id="testJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean"
+          p:jobDetail-ref="testJobDetail"
+          p:cronExpression="0 0 5 * * ? *"/>
+
+    <util:list id = "triggers">
+        <ref bean="testJobTrigger"/>
+    </util:list>
+
+    <bean id="testSchedule" class="org.springframework.scheduling.quartz.SchedulerFactoryBean"
+          p:triggers-ref="triggers"
+          p:autoStartup="true"/>
+</beans>
