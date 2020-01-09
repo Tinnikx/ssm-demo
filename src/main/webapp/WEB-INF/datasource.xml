@@ -8,7 +8,7 @@
     <bean id="dataSource" class="org.springframework.jdbc.datasource.DriverManagerDataSource"
           p:driverClassName="com.mysql.cj.jdbc.Driver"
           p:username="root"
-          p:password="xiang521!"
+          p:password="xiang521"
           p:url="jdbc:mysql://localhost:3306/mytestdb"/>
 
     <!-- if you want use c3p0 pool, then switch to this dataSource -->

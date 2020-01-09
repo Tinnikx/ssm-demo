@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:security="http://www.springframework.org/schema/security"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation=
+               "http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.2.xsd
+                http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-4.2.xsd
+                http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.2.xsd">
+
+    <!--
+        Security configuration
+    -->
+    <context:component-scan base-package="com.netpulse.web.auth"/>
+
+    <!-- Defining it here so that Hibernate session can be opened through transaction annotations at the repository
+    level. We need it because some classes in the auth package use the repository layer -->
+    <context:component-scan base-package="com.netpulse.web.db.repository.main"/>
+
+    <bean id="netpulsePasswordEncoder" class="com.netpulse.web.auth.NetpulsePasswordEncoder">
+        <property name="defaultSalt" value="${security.salt}"/>
+    </bean>
+
+    <bean id="noOpPasswordEncoder" class="org.springframework.security.crypto.password.NoOpPasswordEncoder"/>
+
+    <security:authentication-manager id="defaultAuthenticationManager" alias="defaultAuthenticationManager">
+        <security:authentication-provider ref="partnerAccessTokenAuthenticationProvider"/>
+        <security:authentication-provider ref="standardAuthenticationProvider"/>
+        <security:authentication-provider ref="usernamePasswordAuthenticationProvider"/>
+        <security:authentication-provider ref="identificationAuthenticationProvider"/>
+        <security:authentication-provider ref="integrationGuestAuthenticationProvider"/>
+        <security:authentication-provider ref="guestAuthenticationProvider"/>
+        <!--
+        <security:authentication-provider user-service-ref="defaultUserDetailsService">
+            <security:password-encoder ref="netpulsePasswordEncoder"/>
+        </security:authentication-provider>
+        -->
+        <security:authentication-provider ref="gigyaAuthenticationProvider"/>
+    </security:authentication-manager>
+
+    <security:authentication-manager id="clientAuthenticationManager" alias="clientAuthenticationManager">
+        <security:authentication-provider user-service-ref="clientUserDetailsService">
+            <security:password-encoder ref="noOpPasswordEncoder"/>
+        </security:authentication-provider>
+    </security:authentication-manager>
+
+    <!--  Authentication Filters -->
+    <bean id="defaultUserAuthFilter" class="com.netpulse.web.auth.NetpulseUsernamePasswordAuthenticationFilter">
+        <property name="authenticationManager" ref="defaultAuthenticationManager"/>
+        <property name="authenticationSuccessHandler" ref="webServiceAuthEventHandler"/>
+        <property name="authenticationFailureHandler" ref="netpulseAuthenticationFailureHandler" />
+        <property name="authenticationDetailsSource">
+            <bean class="com.netpulse.web.auth.NetpulseAuthenticationDetailsSource"/>
+        </property>
+        <!--<property name="authenticationFailureHandler" ref="loginFailureEventHandler"/>-->
+        <property name="filterProcessesUrl" value="/np/login"/>
+        <property name="usernameParameter" value="username"/>
+        <property name="passwordParameter" value="password"/>
+    </bean>
+
+    <bean id="clientUserAuthFilter" class="com.netpulse.web.auth.NetpulseUsernamePasswordAuthenticationFilter">
+        <property name="authenticationManager" ref="clientAuthenticationManager"/>
+        <property name="authenticationSuccessHandler" ref="webServiceAuthEventHandler"/>
+        <property name="authenticationFailureHandler" ref="netpulseAuthenticationFailureHandler" />
+        <!--<property name="authenticationFailureHandler" ref="loginFailureEventHandler"/>-->
+        <property name="filterProcessesUrl" value="/np/client-login"/>
+        <property name="usernameParameter" value="login"/>
+        <property name="passwordParameter" value="picturePass"/>
+    </bean>
+
+    <bean id="identificationAuthFilter" class="com.netpulse.web.auth.identification.IdentificationAuthenticationFilter">
+        <property name="authenticationManager" ref="defaultAuthenticationManager"/>
+        <property name="authenticationSuccessHandler" ref="webServiceAuthEventHandler"/>
+        <property name="authenticationFailureHandler" ref="netpulseAuthenticationFailureHandler" />
+        <!--<property name="authenticationFailureHandler" ref="loginFailureEventHandler"/>-->
+        <property name="filterProcessesUrl" value="/np/identification-login"/>
+    </bean>
+
+    <bean id="apiKeyAuthFilter" class="com.netpulse.web.auth.ApiKeyAuthenticationFilter">
+        <property name="authenticationManager" ref="defaultAuthenticationManager"/>
+        <property name="authenticationSuccessHandler" ref="webServiceAuthEventHandler"/>
+        <property name="authenticationFailureHandler" ref="netpulseAuthenticationFailureHandler" />
+    </bean>
+
+    <bean id="companyAccessTokenAuthenticationFilter" class="com.netpulse.web.auth.CompanyAccessTokenAuthenticationFilter">
+        <property name="authenticationManager" ref="defaultAuthenticationManager"/>
+        <property name="authenticationSuccessHandler" ref="webServiceAuthEventHandler"/>
+        <property name="authenticationFailureHandler" ref="netpulseAuthenticationFailureHandler" />
+    </bean>
+
+    <bean id="partnerAccessTokenAuthenticationFilter" class="com.netpulse.web.auth.partner.PartnerAccessTokenAuthenticationFilter">
+        <property name="authenticationManager" ref="defaultAuthenticationManager"/>
+        <property name="authenticationSuccessHandler" ref="webServiceAuthEventHandler"/>
+        <property name="authenticationFailureHandler" ref="netpulseAuthenticationFailureHandler" />
+    </bean>
+
+    <bean id="autoLoginVerifyEmailAuthenticationFilter" class="com.netpulse.web.auth.AutoLoginAuthenticationFilter">
+        <property name="authenticationManager" ref="defaultAuthenticationManager"/>
+        <property name="authenticationSuccessHandler" ref="webServiceAuthEventHandler"/>
+        <property name="authenticationFailureHandler" ref="netpulseAuthenticationFailureHandler" />
+        <property name="filterProcessesUrl" value="/np/exerciser/auto-verify"/>
+    </bean>
+
+    <bean id="standardAuthFilter" class="com.netpulse.web.auth.standard.StandardAuthenticationFilter">
+        <constructor-arg value="/np/exerciser/login"/>
+        <property name="authenticationManager" ref="defaultAuthenticationManager"/>
+        <property name="authenticationSuccessHandler" ref="standardWebServiceAuthEventHandler"/>
+        <property name="authenticationFailureHandler" ref="netpulseAuthenticationFailureHandler" />
+        <property name="authenticationDetailsSource">
+            <bean class="com.netpulse.web.auth.NetpulseAuthenticationDetailsSource"/>
+        </property>
+    </bean>
+
+    <bean id="guestAuthFilter" class="com.netpulse.web.auth.guest.GuestAuthFilter">
+        <constructor-arg value="/np/exerciser/loginAsGuest"/>
+        <property name="authenticationManager" ref="defaultAuthenticationManager"/>
+        <property name="authenticationSuccessHandler" ref="standardWebServiceAuthEventHandler"/>
+        <property name="authenticationFailureHandler" ref="netpulseAuthenticationFailureHandler" />
+        <property name="authenticationDetailsSource">
+            <bean class="com.netpulse.web.auth.NetpulseAuthenticationDetailsSource"/>
+        </property>
+    </bean>
+
+    <bean id="gigyaAuthenticationProcessingFilter" class="com.netpulse.web.auth.gigya.GigyaAuthenticationProcessingFilter">
+        <constructor-arg value="/np/exerciser/gigya/login"/>
+        <property name="authenticationManager" ref="defaultAuthenticationManager"/>
+        <property name="authenticationDetailsSource" ref="gigyaAuthenticationDetailsSource"/>
+        <property name="authenticationSuccessHandler" ref="gigyaAuthenticationSuccessHandler"/>
+    </bean>
+
+    <!--  /Authentication Filters -->
+
+    <bean id="accessDecisionManager" class="org.springframework.security.access.vote.AffirmativeBased">
+        <constructor-arg name="decisionVoters">
+            <list>
+                <bean class="org.springframework.security.access.vote.AuthenticatedVoter"/>
+                <bean class="org.springframework.security.web.access.expression.WebExpressionVoter">
+                    <property name="expressionHandler" ref="hierarchyDeclarativeExpressionHandler"/>
+                </bean>
+            </list>
+        </constructor-arg>
+    </bean>
+
+    <bean id="apiKeyEncoder" class="org.springframework.security.authentication.encoding.ShaPasswordEncoder"/>
+
+    <!-- The alternative way of doing this is to include the child roles with the parent role from the
+         AuthenticatedPersonModel.getAuthorities() call -->
+    <bean id="hierarchyDeclarativeExpressionHandler" class="org.springframework.security.oauth2.provider.expression.OAuth2WebSecurityExpressionHandler">
+        <property name="roleHierarchy">
+            <bean class="org.springframework.security.access.hierarchicalroles.NullRoleHierarchy"/>
+        </property>
+        <!--<property name="permissionEvaluator" ref="masterPermissionEvaluator"/> -->
+        <property name="permissionEvaluator" ref="netpulsePermissionEvaluator"/>
+    </bean>
+
+    <security:http
+            disable-url-rewriting="false"
+            access-decision-manager-ref="accessDecisionManager"
+            entry-point-ref="webServiceAuthenticationEntryPoint"
+            pattern="/(np|metrics)/(?!oauth/token).*" request-matcher="regex">
+
+        <security:intercept-url pattern="/np/login.*" access="permitAll"/>
+        <security:intercept-url pattern="/np/client-login.*" access="permitAll"/>
+        <security:intercept-url pattern="/np/identification-login.*" access="permitAll"/>
+        <security:intercept-url pattern="/np/exerciser/login" access="permitAll"/>
+        <security:intercept-url pattern="/np/exerciser/loginAsGuest" access="permitAll"/>
+        <security:intercept-url pattern="/np/oauth/authorize.*" access="isAuthenticated()"/>
+        <security:intercept-url pattern="/metrics/.*" access="hasRole('ROLE_NP_USER')"/>
+        <security:intercept-url pattern="/np/exerciser/gigya/login" access="permitAll"/>
+        <security:intercept-url pattern="/np/exerciser/auth0/login" access="permitAll"/>
+
+        <!--
+            All other authorization rules implemented with Pre and PostAuthorize annotations on request handler methods
+            within our Spring MVC controller classes.  See the com.netpulse.web.controller.* package.
+         -->
+        <security:custom-filter ref="companyAccessTokenAuthenticationFilter" before="CONCURRENT_SESSION_FILTER"/>
+        <security:custom-filter ref="partnerAccessTokenAuthenticationFilter" before="CSRF_FILTER"/>
+        <security:custom-filter ref="autoLoginVerifyEmailAuthenticationFilter" after="CONCURRENT_SESSION_FILTER"/>
+        <security:custom-filter ref="apiKeyAuthFilter" before="FORM_LOGIN_FILTER"/>
+        <security:custom-filter ref="defaultUserAuthFilter" position="FORM_LOGIN_FILTER"/>
+        <security:custom-filter ref="clientUserAuthFilter" after="FORM_LOGIN_FILTER"/>
+        <security:custom-filter ref="identificationAuthFilter" position="BASIC_AUTH_FILTER"/>
+        <security:custom-filter ref="guestAuthFilter" before="BASIC_AUTH_FILTER"/>
+        <security:custom-filter ref="standardAuthFilter" after="CAS_FILTER"/>
+        <!--security:custom-filter ref="standardAuthFilter" after="EXCEPTION_TRANSLATION_FILTER"/-->
+        <!--security:custom-filter ref="rememberMeFilter" position="REMEMBER_ME_FILTER"/-->
+        <security:custom-filter ref="gigyaAuthenticationProcessingFilter" before="CAS_FILTER"/>
+        <security:custom-filter ref="auth0AuthenticationProcessingFilter" after="PRE_AUTH_FILTER"/>
+        <security:custom-filter ref="appleWalletAuthenticationFilter" before="SECURITY_CONTEXT_FILTER"/>
+
+        <security:logout logout-url="/np/logout" success-handler-ref="webServiceAuthEventHandler"/>
+        <security:expression-handler ref="hierarchyDeclarativeExpressionHandler"/>
+        <security:csrf disabled="false" request-matcher-ref="csrfRequestMatcher" />
+        <security:custom-filter ref="csrfTokenResponseFilter" after="CSRF_FILTER" />
+    </security:http>
+
+    <bean id="csrfTokenResponseFilter" class="com.netpulse.web.mvc.interceptor.CsrfTokenReponseFilter"/>
+
+    <beans profile="!csrf-enabled">
+        <bean id="csrfRequestMatcher" class="org.springframework.security.web.util.matcher.NegatedRequestMatcher">
+            <constructor-arg name="requestMatcher">
+                <bean class="org.springframework.security.web.util.matcher.AnyRequestMatcher" />
+            </constructor-arg>
+        </bean>
+    </beans>
+</beans>

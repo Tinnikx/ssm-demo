@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:security="http://www.springframework.org/schema/security"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+                           http://www.springframework.org/schema/beans/spring-beans.xsd
+                           http://www.springframework.org/schema/security
+                           http://www.springframework.org/schema/security/spring-security-4.2.xsd">
+    <!--开启注解支持, 同时配置上 @PreAuthorize 等注解中所使用的表达式解析器-->
+    <!-- 如果不配置上表达式解析器, 则默认全部使用 @PreAuthorize 等进行的权限验证等都不会通过-->
+    <security:global-method-security pre-post-annotations="enabled">
+        <security:expression-handler ref="defaultAnnotationBasedExpressionHandler"/>
+    </security:global-method-security>
+
+    <!-- spring-security 中的基于注解的表达式解析器 -->
+    <bean id="defaultAnnotationBasedExpressionHandler" class="org.springframework.security.access.expression.method.DefaultMethodSecurityExpressionHandler">
+        <property name="roleHierarchy">
+            <bean class="org.springframework.security.access.hierarchicalroles.NullRoleHierarchy"/>
+        </property>
+        <!--如果不配置则使用默认的 permissionEvaluator, 即 DenyAllPermissionEvaluator-->
+        <property name="permissionEvaluator" ref="standardAuthenticationPermissionEvaluator"/>
+    </bean>
+    <!--开启 security 自动配置-->
+    <!--<security:http auto-config="true"/>-->
+
+    <!--　security http 手动配置 -->
+    <!-- 手动配置时必须配置 entry-point-ref, 作用是当检查到没有权限访问时, 可以对 request, response 进行各种处理 -->
+    <security:http disable-url-rewriting="false"
+                   access-decision-manager-ref="standardAuthenticationAccessDecisionManager"
+                   entry-point-ref="webServiceAuthenticationEntryPoint">
+        <!--若你是不想使用注解例如@PreAuthorize等来进行接口权限控制, 可以在此设置对于接口的权限控制 -->
+        <security:intercept-url pattern="/login" access="permitAll()"/>
+        <security:intercept-url pattern="/testJson" access="hasPermission(null, null, null)"/>
+
+        <!-- 在此使自定义的 spring-security filter 在 spring-security filter chain 中生效并且可以配置此 filter 在 chain 中的位置 -->
+        <security:custom-filter ref="standardAuthenticationFilter" after="CAS_FILTER"/>
+        <!-- 启用 logoutFilter 以及配置 logout 成功之后需要做些什么东西的解析器 -->
+        <security:logout logout-url="/logout" success-handler-ref="webServiceLogoutSuccessHandler"/>
+        <security:csrf disabled="true"/>
+    </security:http>
+
+    <!-- 配置自定义的 spring-security filter -->
+    <!-- 在此可以配置的东西参考 AbstractAuthenticationProcessingFilter 的各项属性 -->
+    <bean id="standardAuthenticationFilter" class="com.taokaixiang.ssm.demo.v1.auth.StandardAuthenticationFilter">
+        <constructor-arg value="/login"/>
+        <property name="authenticationManager" ref="defaultAuthenticationManager"/>
+        <property name="authenticationSuccessHandler" ref="standardAuthenticationSuccessfulHandler"/>
+        <property name="authenticationFailureHandler" ref="standardAuthenticationFailureHandler"/>
+        <property name="authenticationDetailsSource" ref="standardAuthenticationDataSource"/>
+    </bean>
+
+    <!-- 当需要对 FilterSecurityInterceptor 手动配置一些东西的时候需要按照如下方式配置, 但是此配置之后就需要将 FilterSecurityInterceptor 中的一些必要组件也要手动重新配置一下 -->
+    <!--<bean class="org.springframework.security.web.access.intercept.FilterSecurityInterceptor" p:alwaysReauthenticate="true"/>-->
+
+    <!--　security http 手动配置 -->
+    <!--配置 authentication-manager(必须, 哪怕你不用, 手动配置都需要配置一个空的 authentication-manager) -->
+    <security:authentication-manager id="defaultAuthenticationManager" alias="defaultAuthenticationManager">
+        <security:authentication-provider ref="standardAuthenticationProvider"/>
+    </security:authentication-manager>
+    
+    <bean id="standardAuthenticationAccessDecisionManager" class="org.springframework.security.access.vote.AffirmativeBased">
+        <constructor-arg name="decisionVoters">
+            <list>
+                <bean class="org.springframework.security.access.vote.AuthenticatedVoter"/>
+                <bean class="org.springframework.security.web.access.expression.WebExpressionVoter">
+                    <property name="expressionHandler" ref="hierarchyDeclarativeExpressionHandler"/>
+                </bean>
+            </list>
+        </constructor-arg>
+    </bean>
+
+    <bean id="hierarchyDeclarativeExpressionHandler" class="org.springframework.security.web.access.expression.DefaultWebSecurityExpressionHandler">
+        <property name="roleHierarchy">
+            <bean class="org.springframework.security.access.hierarchicalroles.NullRoleHierarchy"/>
+        </property>
+        <property name="permissionEvaluator" ref="standardAuthenticationPermissionEvaluator"/>
+    </bean>
+
+</beans>

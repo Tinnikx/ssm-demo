@@ -16,12 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Configuration
-public class TestConfiguration {
-
-//    @Bean
-//    public HttpMessageConverter messageConverters(){
-//
-//    }
+public class StandardConfiguration {
 
     @Bean(name = "jacksonHttpMessageConverter")
     public MappingJackson2HttpMessageConverter JacksonHttpMessageConverter() {
