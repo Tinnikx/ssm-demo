@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:jms="http://www.springframework.org/schema/jms"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd   http://www.springframework.org/schema/jms https://www.springframework.org/schema/jms/spring-jms.xsd">
+<!-- activemq 点对点简单配置-->
+<!-- 配置ConnectionFactory(下面两种配置自选)-->
+<!--    <amq:connectionFactory id="myConnectionFactory" brokerURL="tcp://localhost:61616" userName="admin" password="admin"/>-->
+    <bean id="myConnectionFactory" class="org.apache.activemq.pool.PooledConnectionFactory">
+        <property name="connectionFactory">
+            <bean class="org.apache.activemq.ActiveMQConnectionFactory">
+                <property name="brokerURL" value="tcp://localhost:61616"/>
+                <property name="userName" value="admin"/>
+                <property name="password" value="admin"/>
+             </bean>
+        </property>
+    </bean>
+    <bean id="jmsCachedConnectFactory" class="org.springframework.jms.connection.CachingConnectionFactory">
+        <property name="targetConnectionFactory" ref="myConnectionFactory"/>
+        <property name="sessionCacheSize" value="100"/>
+    </bean>
+
+<!-- 配置消息目标-->
+    <bean id="queueDestination" class="org.apache.activemq.command.ActiveMQQueue">
+        <constructor-arg value="test.queue"/>
+    </bean>
+
+    <bean id="topicDestination" class="org.apache.activemq.command.ActiveMQTopic">
+        <constructor-arg value="test.topic"/>
+    </bean>
+    <bean id="externalDestinationTest" class="org.apache.activemq.command.ActiveMQQueue">
+        <constructor-arg value="test.external.consumer.queue"/>
+    </bean>
+    <bean id="externalTopicDestinationTest" class="org.apache.activemq.command.ActiveMQTopic">
+        <constructor-arg value="test.external.consumer.topic"/>
+    </bean>
+
+<!-- 关于发送端配置以及监听器配置可分别配置在两个项目中, 可以在某个项目中单独配置发送端或者监听器, 使某个项目只发送, 另一个项目只接收-->
+<!-- 配置发送端-->
+<!-- point to point 发送端-->
+    <bean id="jmsQueueTemplate" class="org.springframework.jms.core.JmsTemplate">
+        <constructor-arg ref="jmsCachedConnectFactory"/>
+        <property name="pubSubDomain" value="false"/>
+        <property name="defaultDestination" ref="queueDestination"/>
+        <property name="messageConverter" ref="myMessageConverter"/>
+        <!--    持久化配置: 默认就是持久化的-->
+        <property name="deliveryMode" value="2"/>
+    </bean>
+
+    <bean id="jmsTopicTemplate" class="org.springframework.jms.core.JmsTemplate">
+        <constructor-arg ref="jmsCachedConnectFactory"/>
+        <property name="pubSubDomain" value="true"/>
+        <property name="defaultDestination" ref="topicDestination"/>
+        <property name="messageConverter" ref="myMessageConverter"/>
+        <!--    持久化配置: 默认就是持久化的-->
+        <property name="deliveryMode" value="2"/>
+    </bean>
+
+    <bean id="jmsExternalQueueTemplate" class="org.springframework.jms.core.JmsTemplate">
+        <property name="deliveryMode" value="2"/>
+        <property name="connectionFactory" ref="myConnectionFactory"/>
+        <property name="messageConverter" ref="myMessageConverter"/>
+        <property name="defaultDestination" ref="externalDestinationTest"/>
+
+    </bean>
+
+
+    <bean id="jmsExternalTopicTemplate" class="org.springframework.jms.core.JmsTemplate">
+        <property name="deliveryMode" value="2"/>
+        <property name="connectionFactory" ref="myConnectionFactory"/>
+        <property name="messageConverter" ref="myMessageConverter"/>
+        <property name="defaultDestination" ref="externalTopicDestinationTest"/>
+
+    </bean>
+
+    <bean id="myMessageConverter" class="org.springframework.jms.support.converter.MappingJackson2MessageConverter"/>
+
+<!--  配置监听器以及目标队列 point to point 模式-->
+<!-- point to point 模式中一条消息只能由一个Listener进行消费-->
+    <jms:listener-container destination-type="queue" container-type="default" connection-factory="jmsCachedConnectFactory" acknowledge="auto">
+        <jms:listener destination="test.queue" ref="testListener"/>
+        <jms:listener destination="test.queue" ref="testListener2"/>
+    </jms:listener-container>
+
+    <!-- 订阅模式中所有订阅了的都可以获取到消息-->
+    <jms:listener-container destination-type="topic" container-type="default" connection-factory="jmsCachedConnectFactory" acknowledge="auto">
+        <jms:listener destination="test.topic" ref="testTopicListener"/>
+        <jms:listener destination="test.topic" ref="testTopicListener2"/>
+    </jms:listener-container>
+
+</beans>

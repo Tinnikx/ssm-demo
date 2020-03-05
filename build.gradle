@@ -56,4 +56,13 @@ dependencies {
     compile group: 'org.springframework.security', name: 'spring-security-config', version: '4.2.13.RELEASE'
     compile group: 'org.springframework.security', name: 'spring-security-core', version: '4.2.13.RELEASE'
 
+    //activemq
+    compile group: 'org.apache.activemq', name: 'activemq-client', version: '5.15.11'
+    compile group: 'org.apache.activemq', name: 'activemq-broker', version: '5.15.11'
+    compile group: 'org.apache.activemq', name: 'activemq-pool', version: '5.15.11'
+    compile group: 'org.apache.activemq', name: 'activemq-spring', version: '5.15.11'
+    compile group: 'org.apache.activemq', name: 'activemq-core', version: '5.7.0'
+    compile group: 'org.springframework', name: 'spring-jms', version: '5.2.2.RELEASE'
+    compile group: 'javax.jms', name: 'javax.jms-api', version: '2.0.1'
+
 }

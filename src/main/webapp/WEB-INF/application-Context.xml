@@ -7,4 +7,5 @@
     <import resource="quartz.xml"/>
     <import resource="datasource.xml"/>
     <import resource="spring-security.xml"/>
+    <import resource="jms-activemq.xml"/>
 </beans>
